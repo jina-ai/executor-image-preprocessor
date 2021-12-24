@@ -1,0 +1,4 @@
+jtype: ImagePreprocessor
+metas:
+  py_modules:
+    - executor.py
