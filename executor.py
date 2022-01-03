@@ -52,7 +52,7 @@ class ImagePreprocessor(Executor):
     def preprocess(self, docs: DocumentArray, **_) -> Optional[DocumentArray]:
         """Preprocess docs."""
         for d in docs:
-            if d.uri and not d.blob:
+            if d.uri and d.blob is None:
                 d.load_uri_to_image_blob()
         self._reshape(docs)
         self._normalize(docs)
