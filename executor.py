@@ -51,6 +51,9 @@ class ImagePreprocessor(Executor):
     @requests
     def preprocess(self, docs: DocumentArray, **_) -> Optional[DocumentArray]:
         """Preprocess docs."""
+        for d in docs:
+            if d.uri:
+                d.load_uri_to_image_blob()
         self._reshape(docs)
         self._normalize(docs)
         return docs
