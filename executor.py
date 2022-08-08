@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Any, Dict
 
 from jina import requests, Document, DocumentArray, Executor
 
@@ -13,6 +13,7 @@ class ImagePreprocessor(Executor):
         self,
         shape: Tuple[int, int] = (200, 200),
         channel_axis: int = 0,
+        traversal_paths: str = "@r",
         **kwargs,
     ) -> None:
         """
@@ -26,11 +27,12 @@ class ImagePreprocessor(Executor):
         assert 0 <= channel_axis <= 2
         self._shape = shape
         self._channel_axis = channel_axis
+        self.traversal_paths = traversal_paths
 
     @staticmethod
     def _get_channel_axis(doc: Document) -> Optional[int]:
-        """Find the channel axis in an image blob."""
-        for axis, dim in enumerate(doc.blob.shape):
+        """Find the channel axis in an image tensor."""
+        for axis, dim in enumerate(doc.tensor.shape):
             if dim == 3:
                 return axis
         raise ValueError(f'Could not find channel axis in document with id: {doc.id}')
@@ -40,20 +42,21 @@ class ImagePreprocessor(Executor):
         for doc in docs:
             channel_axis = self._get_channel_axis(doc)
             if channel_axis != self._channel_axis:
-                doc.set_image_blob_channel_axis(channel_axis, self._channel_axis)
-            doc.set_image_blob_shape(self._shape, self._channel_axis)
+                doc.set_image_tensor_channel_axis(channel_axis, self._channel_axis)
+            doc.set_image_tensor_shape(self._shape, self._channel_axis)
 
     @staticmethod
     def _normalize(docs: DocumentArray) -> None:
         """Normalize images."""
-        docs.blobs = (docs.blobs / 127.5) - 1
+        docs.tensors = (docs.tensors / 127.5) - 1
 
     @requests
-    def preprocess(self, docs: DocumentArray, **_) -> Optional[DocumentArray]:
+    def preprocess(self, docs: DocumentArray, parameters: Dict[str, Any], **_) -> Optional[DocumentArray]:
+        traversal_paths = parameters.get("traversal_paths", self.traversal_paths)
         """Preprocess docs."""
-        for d in docs:
-            if d.uri and d.blob is None:
-                d.load_uri_to_image_blob()
-        self._reshape(docs)
-        self._normalize(docs)
+        for d in docs[traversal_paths]:
+            if d.uri and d.tensor is None:
+                d.load_uri_to_image_tensor()
+        self._reshape(docs[traversal_paths])
+        self._normalize(docs[traversal_paths])
         return docs
