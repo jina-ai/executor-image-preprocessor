@@ -1,5 +1,5 @@
 manifest_version: 1
-name: ImagePreprocessor
-description: An executor that performs standard pre-processing and normalization on images.
+name: ImagePreprocessor-alexcg
+description: An executor that performs standard pre-processing and normalization on images. This version skips text Documents but may be slower.
 url: https://github.com/jina-ai/executor-image-preprocessor
 keywords: [preprocessor, image]

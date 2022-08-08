@@ -32,31 +32,43 @@ class ImagePreprocessor(Executor):
     @staticmethod
     def _get_channel_axis(doc: Document) -> Optional[int]:
         """Find the channel axis in an image tensor."""
-        for axis, dim in enumerate(doc.tensor.shape):
-            if dim == 3:
-                return axis
-        raise ValueError(f'Could not find channel axis in document with id: {doc.id}')
+        if hasattr(doc, "tensor"):
+            # print(doc.tensor.shape)
+            for axis, dim in enumerate(doc.tensor.shape):
+                if dim == 3:
+                    return axis
+            raise ValueError(f'Could not find channel axis in document with id: {doc.id}')
 
     def _reshape(self, docs: DocumentArray):
         """Reshape images."""
         for doc in docs:
-            channel_axis = self._get_channel_axis(doc)
-            if channel_axis != self._channel_axis:
-                doc.set_image_tensor_channel_axis(channel_axis, self._channel_axis)
-            doc.set_image_tensor_shape(self._shape, self._channel_axis)
+            if hasattr(doc, "tensor") and doc.tensor is not None:
+                channel_axis = self._get_channel_axis(doc)
+                if channel_axis != self._channel_axis:
+                    doc.set_image_tensor_channel_axis(channel_axis, self._channel_axis)
+                doc.set_image_tensor_shape(self._shape, self._channel_axis)
 
     @staticmethod
     def _normalize(docs: DocumentArray) -> None:
         """Normalize images."""
-        docs.tensors = (docs.tensors / 127.5) - 1
+        for doc in docs:
+            if hasattr(doc, "tensor") and doc.tensor is not None:
+                doc.tensor = (doc.tensor / 127.5) - 1
 
     @requests
     def preprocess(self, docs: DocumentArray, parameters: Dict[str, Any], **_) -> Optional[DocumentArray]:
-        traversal_paths = parameters.get("traversal_paths", self.traversal_paths)
         """Preprocess docs."""
+        traversal_paths = parameters.get("traversal_paths", self.traversal_paths)
+        img_extensions = ["png", "jpg", "jpeg", "gif"]
         for d in docs[traversal_paths]:
             if d.uri and d.tensor is None:
                 d.load_uri_to_image_tensor()
+
+            # if not d.text:
+                # print(d.content, "no text")
+
+                # if d.tensor is not None and not d.text:
+            # if hasattr(d, "tensor"):
         self._reshape(docs[traversal_paths])
         self._normalize(docs[traversal_paths])
         return docs
